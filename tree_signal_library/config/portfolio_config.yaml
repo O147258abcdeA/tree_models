@@ -1,0 +1,31 @@
+# 中证1000指数增强组合优化配置
+risk_aversion: 10.0           # lambda：主动风险厌恶
+turnover_penalty: 1.0         # gamma：换手惩罚
+cost_rate: 0.0015             # 单边交易成本
+
+constraints:
+  max_weight: 0.01            # 单只股票最大权重
+  max_active_weight: 0.005    # 单只股票相对基准最大偏离
+  max_industry_active: 0.02   # 行业主动偏离上限
+  style_bounds:               # 风格主动暴露区间（标准化暴露）
+    log_mktcap: 0.2
+    beta: 0.2
+    volatility: 0.2
+    liquidity: 0.2
+    value: 0.3
+    growth: 0.3
+    quality: 0.3
+  max_tracking_error: 0.05    # 年化跟踪误差上限
+  max_turnover: 0.30          # 单次调仓双边换手上限
+  adv_participation: 0.05     # 成交额容量约束：权重*组合规模 <= adv_participation * 日均成交额
+  portfolio_value: 1.0e8      # 组合规模（用于容量约束）
+
+long_short:
+  top_quantile: 0.1
+  bottom_quantile: 0.1
+  weighting: equal            # equal | score
+  rebalance_freq: daily       # daily | weekly | monthly
+  industry_neutral: false
+  mktcap_neutral: false
+  beta_neutral: false
+  cost_rate: 0.0015

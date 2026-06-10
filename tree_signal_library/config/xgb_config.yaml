@@ -1,0 +1,38 @@
+# XGBoost 默认超参
+regression:
+  objective: reg:squarederror   # reg:squarederror | reg:pseudohubererror | reg:absoluteerror
+  eval_metric: rmse
+  eta: 0.03
+  max_depth: 6
+  max_leaves: 0
+  min_child_weight: 100
+  subsample: 0.7
+  colsample_bytree: 0.7
+  colsample_bylevel: 1.0
+  colsample_bynode: 1.0
+  gamma: 0.0
+  reg_alpha: 0.1
+  reg_lambda: 1.0
+  tree_method: hist
+  max_bin: 256
+  num_boost_round: 3000
+  early_stopping_rounds: 100
+
+ranking:
+  objective: rank:pairwise      # rank:pairwise | rank:ndcg | rank:map
+  eval_metric: ndcg
+  eta: 0.03
+  max_depth: 6
+  max_leaves: 0
+  min_child_weight: 100
+  subsample: 0.7
+  colsample_bytree: 0.7
+  colsample_bylevel: 1.0
+  colsample_bynode: 1.0
+  gamma: 0.0
+  reg_alpha: 0.1
+  reg_lambda: 1.0
+  tree_method: hist
+  max_bin: 256
+  num_boost_round: 3000
+  early_stopping_rounds: 100

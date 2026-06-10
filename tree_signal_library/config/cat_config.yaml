@@ -1,0 +1,32 @@
+# CatBoost 默认超参
+regression:
+  loss_function: RMSE           # RMSE | MAE | Huber:delta=1.0 | Quantile:alpha=0.5
+  eval_metric: RMSE
+  iterations: 3000
+  learning_rate: 0.03
+  depth: 6
+  l2_leaf_reg: 10
+  random_strength: 1
+  bagging_temperature: 1
+  border_count: 128
+  grow_policy: SymmetricTree
+  early_stopping_rounds: 100
+  task_type: CPU
+  thread_count: -1
+  verbose: false
+
+ranking:
+  loss_function: YetiRank       # YetiRank | PairLogit | QueryRMSE
+  eval_metric: NDCG
+  iterations: 3000
+  learning_rate: 0.03
+  depth: 6
+  l2_leaf_reg: 10
+  random_strength: 1
+  bagging_temperature: 1
+  border_count: 128
+  grow_policy: SymmetricTree
+  early_stopping_rounds: 100
+  task_type: CPU
+  thread_count: -1
+  verbose: false

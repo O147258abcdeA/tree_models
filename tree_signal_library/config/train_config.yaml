@@ -1,0 +1,25 @@
+# 滚动训练配置
+models_path: data/models
+signals_raw_path: data/signals/raw
+
+rolling:
+  train_years: 5              # train_window = 5 年
+  valid_years: 1              # valid_window = 1 年
+  test_months: 3              # test_window：1（月）或 3（季度）
+  step_months: 3              # 每次向前滚动的月数
+  embargo_days: 20            # train/valid、valid/test 之间隔离的交易日数（= max horizon）
+
+# 第一阶段模型清单：family x objective_type x label_type x horizon
+model_specs:
+  - model_family: lightgbm
+    objective_type: regression
+    label_type: excess_return
+    horizon: 5
+    model_version: v01
+  - model_family: lightgbm
+    objective_type: regression
+    label_type: residual_return
+    horizon: 5
+    model_version: v01
+
+seed: 42
