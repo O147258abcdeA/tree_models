@@ -6,6 +6,8 @@ from sklearn.datasets import make_classification, make_regression
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.ensemble import RandomForestClassifier
 
+from sklearn.exceptions import NotFittedError
+
 from tree_models import TreeModelsCombo
 
 
@@ -160,7 +162,7 @@ class TestEdgeCases:
     def test_not_fitted_raises(self, clf_data):
         X, _ = clf_data
         combo = TreeModelsCombo()
-        with pytest.raises(Exception):
+        with pytest.raises(NotFittedError):
             combo.predict(X)
 
     def test_invalid_task_raises(self, clf_data):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, clone
@@ -209,7 +209,7 @@ class TreeModelsCombo(BaseEstimator):
                 result[i] = unique[np.argmax(counts)]
             else:
                 # Weighted vote: accumulate weights per class
-                vote_weights: dict = {}
+                vote_weights: Dict[Any, float] = {}
                 for vote, w in zip(votes, weights):
                     vote_weights[vote] = vote_weights.get(vote, 0.0) + w
                 result[i] = max(vote_weights, key=vote_weights.__getitem__)
