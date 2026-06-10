@@ -104,10 +104,15 @@ def load_cat_model(path: str | Path) -> CatBoost:
     return model
 
 
-def get_cat_feature_importance(model: CatBoost) -> pl.DataFrame:
-    """特征重要性（PredictionValuesChange / 对 ranking 自动退化），降序。"""
+def get_cat_feature_importance(model: CatBoost,
+                               train_pool: Pool | None = None) -> pl.DataFrame:
+    """特征重要性，降序。
+
+    ranking 模型（LossFunctionChange 口径）必须传入训练 Pool；
+    regression 默认 PredictionValuesChange，无需数据。
+    """
     names = model.feature_names_
-    imp = model.get_feature_importance()
+    imp = model.get_feature_importance(data=train_pool)
     return pl.DataFrame({"feature": names, "importance": imp}).sort(
         "importance", descending=True)
 
@@ -123,9 +128,13 @@ def run_cat_one_window(train_df: pl.DataFrame, valid_df: pl.DataFrame,
     if objective_type == "regression":
         model = train_cat_regression(train_df, valid_df, feature_cols, label_col,
                                      params, seed, cat_features)
+        importance = get_cat_feature_importance(model)
     elif objective_type == "ranking":
         model = train_cat_ranking(train_df, valid_df, feature_cols, label_col,
                                   params, seed, cat_features)
+        importance = get_cat_feature_importance(
+            model, prepare_cat_rank_pool(train_df, feature_cols, label_col,
+                                         cat_features))
     else:
         raise ValueError(f"unsupported objective_type for catboost: {objective_type}")
 
@@ -145,5 +154,5 @@ def run_cat_one_window(train_df: pl.DataFrame, valid_df: pl.DataFrame,
         "icir_valid": ic["icir"],
         "rankicir_valid": ric["icir"],
         "predictions": preds,
-        "feature_importance": get_cat_feature_importance(model),
+        "feature_importance": importance,
     }
