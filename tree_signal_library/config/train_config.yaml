@@ -1,13 +1,124 @@
-# 滚动训练配置
+# 训练配置
 models_path: data/models
 signals_raw_path: data/signals/raw
 
+# 训练模式：rolling | expanding
+train_mode: rolling
+
+# 滚动训练配置
 rolling:
   train_years: 5              # train_window = 5 年
   valid_years: 1              # valid_window = 1 年
   test_months: 3              # test_window：1（月）或 3（季度）
   step_months: 3              # 每次向前滚动的月数
   embargo_days: 20            # train/valid、valid/test 之间隔离的交易日数（= max horizon）
+
+# 扩展训练配置（训练起点固定，窗口持续扩大）
+expanding:
+  min_train_years: 3          # 最小训练年数（第一个窗口至少积累3年数据）
+  valid_years: 1              # valid_window = 1 年
+  test_months: 3              # test_window：3 个月
+  step_months: 3              # 每次向前推进的月数
+  embargo_days: 20            # train/valid、valid/test 之间隔离的交易日数
+
+# Optuna 超参搜索配置（可选，设 enabled: true 则在首个窗口用 TPE 搜参）
+optuna:
+  enabled: false              # 是否启用 Optuna 调参
+  n_trials: 50                # 搜索 trial 数量
+  timeout: null               # 搜索时间限制（秒），null=不限
+  # 搜索空间示例（按 model_family 分别配置）
+  search_space:
+    lightgbm:
+      num_leaves:
+        type: int
+        low: 31
+        high: 255
+        step: 1
+      learning_rate:
+        type: float
+        low: 0.005
+        high: 0.1
+        log: true
+      feature_fraction:
+        type: float
+        low: 0.4
+        high: 0.9
+      bagging_fraction:
+        type: float
+        low: 0.4
+        high: 0.9
+      min_data_in_leaf:
+        type: int
+        low: 50
+        high: 500
+        step: 10
+      lambda_l1:
+        type: float
+        low: 0.001
+        high: 10.0
+        log: true
+      lambda_l2:
+        type: float
+        low: 0.001
+        high: 10.0
+        log: true
+    xgboost:
+      max_depth:
+        type: int
+        low: 3
+        high: 10
+      eta:
+        type: float
+        low: 0.005
+        high: 0.1
+        log: true
+      subsample:
+        type: float
+        low: 0.4
+        high: 0.9
+      colsample_bytree:
+        type: float
+        low: 0.4
+        high: 0.9
+      min_child_weight:
+        type: int
+        low: 30
+        high: 300
+        step: 10
+      reg_alpha:
+        type: float
+        low: 0.001
+        high: 10.0
+        log: true
+      reg_lambda:
+        type: float
+        low: 0.001
+        high: 10.0
+        log: true
+    catboost:
+      depth:
+        type: int
+        low: 4
+        high: 10
+      learning_rate:
+        type: float
+        low: 0.005
+        high: 0.1
+        log: true
+      l2_leaf_reg:
+        type: float
+        low: 1.0
+        high: 50.0
+        log: true
+      random_strength:
+        type: float
+        low: 0.1
+        high: 10.0
+        log: true
+      bagging_temperature:
+        type: float
+        low: 0.0
+        high: 5.0
 
 # 第一阶段模型清单：family x objective_type x label_type x horizon
 model_specs:

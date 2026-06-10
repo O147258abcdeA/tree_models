@@ -78,6 +78,67 @@ def generate_rolling_windows(start: str | dt.date, end: str | dt.date,
     return windows
 
 
+def generate_expanding_windows(start: str | dt.date, end: str | dt.date,
+                               valid_years: int = 1,
+                               test_months: int = 3, step_months: int = 3,
+                               embargo_days: int = 20,
+                               min_train_years: int = 3) -> list[WindowSpec]:
+    """生成扩展窗口序列（Expanding Window）。
+
+    与 rolling 的区别：训练起点固定为 start，训练窗口随时间推移持续扩大，
+    每个窗口使用从开始到当前的全部历史数据训练。
+
+    原理：
+    - Expanding 方法假设更多历史数据能提供更好的模型泛化能力；
+    - 训练集持续累积，适合数据量有限或市场结构相对稳定的场景；
+    - 对比 Rolling：Rolling 假设近期数据更相关（regime shift），Expanding
+      假设长期模式更稳定。
+
+    Parameters
+    ----------
+    start : 全部历史数据起始日期（固定训练起点）。
+    end : 回溯区间终止日期。
+    valid_years : 验证窗口年数。
+    test_months : 测试窗口月数。
+    step_months : 每次向前推进的月数。
+    embargo_days : train/valid、valid/test 之间隔离的交易日数。
+    min_train_years : 最小训练年数（第一个窗口至少需要这么多年的训练数据）。
+
+    Returns
+    -------
+    WindowSpec 列表（按时间顺序），训练起点固定，窗口逐步扩大。
+    """
+    start, end = to_date(start), to_date(end)
+    windows: list[WindowSpec] = []
+    i = 0
+    # 第一个 valid 起点：至少满足 min_train_years
+    first_valid_start = _add_months(start, 12 * min_train_years)
+    valid_start = first_valid_start
+    while True:
+        train_start = start  # 固定起点
+        train_end = valid_start - dt.timedelta(days=1)
+        valid_end = _add_months(valid_start, 12 * valid_years) - dt.timedelta(days=1)
+        test_start = _add_months(valid_start, 12 * valid_years)
+        test_end = _add_months(test_start, test_months) - dt.timedelta(days=1)
+        if test_start > end:
+            break
+        test_end = min(test_end, end)
+        windows.append(WindowSpec(
+            window_id=f"e{i:03d}_{test_start:%Y%m%d}",
+            train_start=train_start, train_end=train_end,
+            valid_start=valid_start, valid_end=valid_end,
+            test_start=test_start, test_end=test_end,
+        ))
+        i += 1
+        valid_start = _add_months(valid_start, step_months)
+    if not windows:
+        raise ValueError(f"no expanding windows in [{start}, {end}]; "
+                         "check min_train_years/valid_years/test_months")
+    logger.info("generated %d expanding windows, embargo=%d trading days",
+                len(windows), embargo_days)
+    return windows
+
+
 def _load_span(feature_path: str | Path, label_path: str | Path,
                start: dt.date, end: dt.date) -> pl.DataFrame:
     """加载 [start, end] 区间内的特征 + 标签（按 date, stock_id join）。"""

@@ -1,8 +1,9 @@
 # tree_signal_library — 树模型多模型 Alpha 信号库
 
 A股日频面板（~5000 股 x 1000–2000 因子）的工程化树模型信号生产线：
-LightGBM / XGBoost / CatBoost 滚动训练 -> 样本外预测 -> 统一信号库 ->
-标准化/中性化 -> 评估 -> 多模型融合 -> 中证1000指数增强 / 多空回测。
+LightGBM / XGBoost / CatBoost 滚动/扩展训练 -> Optuna 超参优化 ->
+样本外预测 -> 统一信号库 -> 标准化/中性化 -> 评估 -> 多模型融合 ->
+中证1000指数增强 / 多空回测。
 
 核心约定：所有表操作使用 **polars**（numpy 仅用于模型矩阵与横截面回归）；
 模型不是最终资产，标准化后的每日每股 alpha signal 才是。
@@ -16,14 +17,23 @@ pip install -r requirements.txt
 ## 运行
 
 ```bash
+# 滚动训练（默认）
+python run_pipeline.py --stage train --start 2015-01-01 --end 2024-12-31
+
+# 扩展训练
+python run_pipeline.py --stage train --start 2015-01-01 --end 2024-12-31 --train-mode expanding
+
+# 其他阶段
 python run_pipeline.py --stage preprocess --start 2015-01-01 --end 2024-12-31
 python run_pipeline.py --stage label     --start 2015-01-01 --end 2024-12-31
-python run_pipeline.py --stage train     --start 2015-01-01 --end 2024-12-31
 python run_pipeline.py --stage signal
 python run_pipeline.py --stage evaluate
 python run_pipeline.py --stage ensemble  --horizon 5
 python run_pipeline.py --stage backtest  --signal-file data/signals/ensemble/ensemble_equal_rank.parquet
 ```
+
+启用 Optuna 超参调参：在 `config/train_config.yaml` 中设置 `optuna.enabled: true`。
+详细 API 文档见 [docs/API_REFERENCE.md](docs/API_REFERENCE.md)。
 
 ## 测试
 

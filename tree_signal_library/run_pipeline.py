@@ -50,6 +50,7 @@ def stage_label(args) -> None:
 
 def stage_train(args) -> None:
     from src.train.rolling_train import rolling_train_pipeline
+    from src.train.expanding_train import expanding_train_pipeline
     dcfg = load_config("data_config.yaml")
     lcfg = load_config("label_config.yaml")
     tcfg = load_config("train_config.yaml")
@@ -57,9 +58,19 @@ def stage_train(args) -> None:
                 "label_version": get_version(lcfg, "label_version", "l")}
     tcfg["models_path"] = str(_abs(tcfg["models_path"]))
     tcfg["signals_raw_path"] = str(_abs(tcfg["signals_raw_path"]))
-    log = rolling_train_pipeline(_abs(dcfg["processed_path"]),
-                                 _abs(lcfg["labels_path"]),
-                                 tcfg, versions, args.start, args.end)
+
+    # 支持命令行 --train-mode 覆盖配置中的 train_mode
+    train_mode = args.train_mode or tcfg.get("train_mode", "rolling")
+    if train_mode == "rolling":
+        log = rolling_train_pipeline(_abs(dcfg["processed_path"]),
+                                     _abs(lcfg["labels_path"]),
+                                     tcfg, versions, args.start, args.end)
+    elif train_mode == "expanding":
+        log = expanding_train_pipeline(_abs(dcfg["processed_path"]),
+                                       _abs(lcfg["labels_path"]),
+                                       tcfg, versions, args.start, args.end)
+    else:
+        raise ValueError(f"unknown train_mode: {train_mode}; expect rolling/expanding")
     log.write_csv(_abs("data/reports/train_log.csv"))
 
 
@@ -144,6 +155,8 @@ def main() -> None:
     parser.add_argument("--end", default=None, help="YYYY-MM-DD")
     parser.add_argument("--horizon", type=int, default=5)
     parser.add_argument("--signal-file", default=None)
+    parser.add_argument("--train-mode", default=None, choices=["rolling", "expanding"],
+                        help="训练模式：rolling（滚动窗口）或 expanding（扩展窗口）")
     args = parser.parse_args()
     logger.info("=== stage %s start ===", args.stage)
     STAGES[args.stage](args)
