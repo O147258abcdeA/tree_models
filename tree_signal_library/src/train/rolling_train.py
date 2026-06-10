@@ -5,6 +5,10 @@ rolling_train_pipeline：
     加载 train/valid/test（含 embargo）-> 训练 -> valid IC/RankIC ->
     test 样本外预测 -> 保存模型 checkpoint -> 保存测试期信号 -> 释放内存。
 内存中始终只保留一个窗口的数据。
+
+支持 Optuna 超参优化（可选）：
+  若 train_config.yaml 中 optuna.enabled = true，则在首个窗口使用
+  TPE 搜索最优超参，后续窗口复用搜索结果。
 """
 from __future__ import annotations
 
@@ -35,6 +39,43 @@ def _model_params(spec: dict, override: dict | None = None) -> dict:
         raise ValueError(f"no default params for {spec['model_family']}/"
                          f"{spec['objective_type']}")
     return merge_config(params, override or spec.get("params"))
+
+
+def _run_optuna_for_spec(data: dict, spec: dict, feature_cols: list[str],
+                         base_params: dict, optuna_cfg: dict,
+                         seed: int) -> dict:
+    """对单个 model_spec 在首窗口执行 Optuna 超参搜索。"""
+    from src.train.hyperparam_search import hyperparam_search
+    from src.train.train_one_window import resolve_label_cols
+
+    family = spec["model_family"]
+    objective_type = spec["objective_type"]
+    horizon = int(spec["horizon"])
+    train_label, eval_label = resolve_label_cols(
+        objective_type, spec["label_type"], horizon)
+
+    search_space = optuna_cfg.get("search_space", {}).get(family, {})
+    if not search_space:
+        logger.warning("no optuna search_space for %s, skip tuning", family)
+        return base_params
+
+    best_params, trials_df = hyperparam_search(
+        train_df=data["train"],
+        valid_df=data["valid"],
+        feature_cols=feature_cols,
+        label_col=train_label,
+        base_params=base_params,
+        search_space=search_space,
+        model_family=family,
+        objective_type=objective_type,
+        n_trials=optuna_cfg.get("n_trials", 50),
+        eval_label_col=eval_label,
+        seed=seed,
+        timeout=optuna_cfg.get("timeout"),
+    )
+    logger.info("optuna best for %s/%s: %s", family, objective_type,
+                {k: v for k, v in best_params.items() if k in search_space})
+    return best_params
 
 
 def rolling_train_pipeline(feature_path: str | Path, label_path: str | Path,
@@ -77,11 +118,28 @@ def rolling_train_pipeline(feature_path: str | Path, label_path: str | Path,
                 len(windows), len(specs), len(feature_cols))
 
     logs: list[dict] = []
-    for window in windows:
+    optuna_cfg = train_cfg.get("optuna", {})
+    use_optuna = optuna_cfg.get("enabled", False)
+    tuned_params: dict[str, dict] = {}  # spec_key -> tuned params
+
+    for wi, window in enumerate(windows):
         data = load_window_data(window, feature_path, label_path,
                                 embargo_days=rolling.get("embargo_days", 20))
         for spec in specs:
-            params = _model_params(spec)
+            base_params = _model_params(spec)
+            spec_key = f"{spec['model_family']}_{spec['objective_type']}"
+
+            # Optuna：首窗口搜参，后续窗口复用
+            if use_optuna and wi == 0:
+                params = _run_optuna_for_spec(
+                    data, spec, feature_cols, base_params, optuna_cfg,
+                    seed=train_cfg.get("seed", 42))
+                tuned_params[spec_key] = params
+            elif spec_key in tuned_params:
+                params = tuned_params[spec_key]
+            else:
+                params = base_params
+
             result, meta = train_one_model_one_window(
                 data, window, spec, feature_cols, params, versions,
                 models_root, seed=train_cfg.get("seed", 42))
