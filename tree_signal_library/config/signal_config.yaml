@@ -1,0 +1,22 @@
+# 信号标准化与中性化配置
+signals_raw_path: data/signals/raw
+signals_processed_path: data/signals/processed
+risk_exposure_path: data/processed     # 风险暴露表来源（date, stock_id, industry, log_mktcap, ...）
+
+# 处理流程（全部按 date 横截面）：winsorize -> zscore -> rank -> industry/style neutralize -> re-zscore
+winsorize:
+  enabled: true
+  lower: 0.01
+  upper: 0.99
+industry_neutralize: true
+style_neutralize: true
+style_cols: [log_mktcap, beta, turnover, volatility]
+industry_col: industry
+
+# 评估
+evaluation:
+  reports_path: data/reports
+  n_groups: 5                 # 分组收益分组数：5 或 10
+  top_quantile: 0.1
+  horizons: [1, 5, 10, 20]
+  score_cols: [raw_score, rank_score, zscore_score, neutral_score]

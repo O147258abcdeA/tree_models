@@ -1,0 +1,21 @@
+# 多模型信号融合配置
+signals_processed_path: data/signals/processed
+ensemble_output_path: data/signals/ensemble
+
+# equal_rank | equal_neutral | icir_weighted | rankicir_weighted | family | stacking
+method: equal_rank
+
+# 动态权重：只允许使用 apply_date 之前的信息
+lookback_days: 252            # ICIR 滚动回看窗口（交易日）
+min_history_days: 60          # 不足该天数时退化为等权
+
+family_weights:               # family ensemble 的家族间权重
+  lightgbm: 0.34
+  xgboost: 0.33
+  catboost: 0.33
+
+stacking:
+  model: ridge                # ridge | elasticnet | lightgbm
+  alpha: 1.0
+  l1_ratio: 0.5
+  refit_freq_days: 21         # 二层模型滚动重训频率

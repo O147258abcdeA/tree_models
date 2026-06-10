@@ -1,0 +1,36 @@
+# 数据读取与横截面预处理配置
+raw_path: data/raw            # 原始因子库根目录（parquet，按 year 或 date 分区）
+processed_path: data/processed
+partition_by: year            # year | date
+
+# 列约定
+date_col: date
+stock_col: stock_id
+industry_col: industry
+factor_col_pattern: "^factor_\\d+$"
+
+# universe 过滤
+filter:
+  drop_st: true               # 剔除 ST 股票（is_st == 1/true）
+  drop_suspended: true        # 剔除停牌股票（is_suspended）
+  drop_limit_up: false        # 可选剔除涨停（is_limit_up）
+  drop_limit_down: false      # 可选剔除跌停（is_limit_down）
+
+# 缺失率剔列：在 train 窗口起点统计并固化列表
+max_missing_rate: 0.30
+
+# 横截面预处理
+winsorize:
+  lower: 0.01
+  upper: 0.99
+fill_missing:
+  method: median              # median | industry_median | zero
+standardize: true             # 横截面 zscore
+standardize_by_industry: false  # 可选：行业内标准化
+neutralize:
+  enabled: false              # 可选：因子对风险暴露中性化
+  neutral_cols: [log_mktcap, beta, turnover, volatility]
+  use_industry: true
+
+# 版本：preprocess 配置变更需 bump
+feature_version: f01

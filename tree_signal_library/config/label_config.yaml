@@ -1,0 +1,28 @@
+# 多标签构造配置
+labels_path: data/labels
+horizons: [1, 5, 10, 20]
+
+price_col: close
+benchmark_weight_col: benchmark_weight
+industry_col: industry
+
+# 风格残差收益回归使用的风格列
+style_cols: [log_mktcap, beta, turnover, volatility]
+
+# 标签后处理（均按 date 横截面）
+winsorize:
+  enabled: true
+  lower: 0.01
+  upper: 0.99
+standardize: false            # 可选：标签横截面标准化
+
+# 分组标签
+n_groups: 5                   # 5 或 10
+
+# 分类标签
+classification:
+  top_quantile: 0.2           # top 20% -> 1
+  bottom_quantile: 0.2        # bottom 20% -> 0
+  keep_middle: true           # 中间 60% 标记为中性类别 2；false 则置 null（可丢弃）
+
+label_version: l01
