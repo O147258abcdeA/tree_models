@@ -1,0 +1,5 @@
+Metadata-Version: 2.1
+Name: tree-models
+Version: 0.1.0
+Summary: Combine multiple tree-based ML models into a single combo estimator
+Requires-Python: >=3.8
